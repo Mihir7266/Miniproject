@@ -91,7 +91,7 @@ router.post('/', auth, [
       $inc: { loyaltyPoints: pointsEarned }
     });
 
-    // Send order confirmation email
+    // Send order confirmation email to customer
     try {
       await sendEmail(
         req.user.email,
@@ -118,6 +118,35 @@ router.post('/', auth, [
       );
     } catch (emailError) {
       console.error('Order confirmation email failed:', emailError);
+    }
+
+    // Notify admin(s) about new order
+    try {
+      const adminUsers = await User.find({ role: 'admin', isActive: true }).select('name email');
+
+      if (adminUsers && adminUsers.length > 0) {
+        const adminEmails = adminUsers.map(admin => admin.email);
+
+        await sendEmail(
+          adminEmails,
+          `New Order Placed - ${order.orderNumber}`,
+          `
+          <h2>New Order Placed</h2>
+          <p>A new order has been placed in the system.</p>
+          <div class="highlight">
+            <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+            <p><strong>Customer Name:</strong> ${req.user.name}</p>
+            <p><strong>Customer Email:</strong> ${req.user.email}</p>
+            <p><strong>Order Type:</strong> ${order.orderType}</p>
+            <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
+          </div>
+          <p>You can view and manage this order from the admin panel.</p>
+          <p>Best regards,<br>Garden Grains System</p>
+          `
+        );
+      }
+    } catch (adminEmailError) {
+      console.error('Admin new-order notification email failed:', adminEmailError);
     }
 
     res.status(201).json({

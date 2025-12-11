@@ -15,7 +15,7 @@ import {
 } from 'recharts'
 
 const Dashboard = () => {
-  const { data: dashboardData, isLoading, isFetching, refetch } = useQuery(
+  const { data: dashboardData, isLoading, isFetching, isError, refetch } = useQuery(
     'admin-dashboard',
     () => adminAPI.getDashboard({ period: '7d' }),
     {
@@ -42,6 +42,23 @@ const Dashboard = () => {
       refetchInterval: 10000
     }
   )
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-red-600">Unable to load dashboard data.</p>
+          <p className="text-sm text-gray-600 mt-2">Please check your connection or try refreshing.</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -229,7 +246,7 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {dashboardData?.recentOrders?.slice(0, 5).map((order) => (
+                {(dashboardData?.recentOrders || []).slice(0, 5).map((order) => (
                   <tr key={order._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
